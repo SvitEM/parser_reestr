@@ -1,1 +1,1 @@
-web: gunicorn main:main -c gunicorn.config.py
+web: gunicorn main:main -c gunicorn.config.py --log-file -
