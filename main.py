@@ -1,6 +1,6 @@
 from aiohttp import web
 import asyncio
-from test1 import get_info
+from parser import get_info
 
 routes = web.RouteTableDef()
 
@@ -12,9 +12,16 @@ async def hello(request):
     # data = {'example': 'example1'}
     return web.json_response(data=data)
 
+@routes.get('/')
+async def hello(request):
+    return web.Response(text='hello to parser')
 
-if __name__ == '__main__':
+
+def main(*args, **kwargs):
     app = web.Application()
     app.add_routes(routes)
     web.run_app(app)
+
+if __name__ == '__main__':
+    main()
 
