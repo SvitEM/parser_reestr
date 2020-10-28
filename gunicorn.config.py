@@ -8,7 +8,7 @@ STDOUT = "-"
 backlog = env("GUNICORN_BACKLOG", 2048)
 
 # The socket to bind.
-bind = env("GUNICORN_BIND", f"0.0.0.0:8080")
+bind = env("GUNICORN_BIND", f"0.0.0.0:8000")
 
 # Check the configuration.
 check_config = env("GUNICORN_CHECK_CONFIG", False)
