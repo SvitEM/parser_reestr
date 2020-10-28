@@ -8,14 +8,14 @@ STDOUT = "-"
 backlog = env("GUNICORN_BACKLOG", 2048)
 
 # The socket to bind.
-bind = env("GUNICORN_BIND", f"0.0.0.0:8000")
+# bind = env("GUNICORN_BIND", f"0.0.0.0:8000")
 
 # Check the configuration.
 check_config = env("GUNICORN_CHECK_CONFIG", False)
 
 # The number of worker processes that this server
 # should keep alive for handling requests.
-workers = env("GUNICORN_WORKERS", cpu_count() * 2 + 1)
+# workers = env("GUNICORN_WORKERS", cpu_count() * 2 + 1)
 
 # The type of workers to use.
 worker_class = env("GUNICORN_WORKER_CLASS", "aiohttp.GunicornUVLoopWebWorker")
