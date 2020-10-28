@@ -1,27 +1,37 @@
+from concurrent.futures.thread import ThreadPoolExecutor
+
 from aiohttp import web
 import asyncio
-from parser import get_info
+# from parser import get_info
+import uvloop
 
-routes = web.RouteTableDef()
+# @routes.get('/parse')
+# async def hello(request):
+#     id = request.rel_url.query['id']
+#     data = await get_info(id)
+#     # data = {'example': 'example1'}
+#     return web.json_response(data=data)
 
 
-@routes.get('/parse')
 async def hello(request):
-    id = request.rel_url.query['id']
-    data = await get_info(id)
-    # data = {'example': 'example1'}
-    return web.json_response(data=data)
-
-@routes.get('/')
-async def hello(request):
-    return web.Response(text='hello to parser')
+    return web.json_response(data={'hello from parser': True})
 
 
-def main(*args, **kwargs):
+def setup_asyncio():
+    uvloop.install()
+    loop = asyncio.get_event_loop()
+    executor = ThreadPoolExecutor(thread_name_prefix="invest_api")
+    loop.set_default_executor(executor)
+
+
+async def main(config=None):
+    setup_asyncio()
     app = web.Application()
-    app.add_routes(routes)
-    web.run_app(app)
+    app.router.add_get('/', hello)
+    return app
 
-if __name__ == '__main__':
-    main()
+
+# app = main()
+# if __name__ == '__main__':
+#     main()
 
