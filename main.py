@@ -2,15 +2,15 @@ from concurrent.futures.thread import ThreadPoolExecutor
 
 from aiohttp import web
 import asyncio
-# from parser import get_info
+from parser import get_info
 import uvloop
 
-# @routes.get('/parse')
-# async def hello(request):
-#     id = request.rel_url.query['id']
-#     data = await get_info(id)
-#     # data = {'example': 'example1'}
-#     return web.json_response(data=data)
+
+async def parse(request):
+    id = request.rel_url.query['id']
+    data = await get_info(id)
+    # data = {'example': 'example1'}
+    return web.json_response(data=data)
 
 
 async def hello(request):
@@ -28,6 +28,7 @@ async def main(config=None):
     setup_asyncio()
     app = web.Application()
     app.router.add_get('/', hello)
+    app.router.add_get('/parse', parse)
     return app
 
 
