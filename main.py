@@ -7,9 +7,13 @@ import uvloop
 
 
 async def parse(request):
-    id = request.rel_url.query['id']
-    data = await get_info(id)
-    # data = {'example': 'example1'}
+    data = {'example': 'example1'}
+    try:
+        data = await get_info(request)
+    except Exception as e:
+        print(e)
+        data = {'exception': e}
+    print(data)
     return web.json_response(data=data)
 
 

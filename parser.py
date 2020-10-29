@@ -1,18 +1,29 @@
 import asyncio
+from urllib import parse
+from validator import validate_reestr
+
 import requests
 import re
 from functools import reduce
 from operator import iconcat
 
 
-async def parse_reesr(url, s):
+async def parse_reestr(url: dict, s):
     data = []
-    resp_json = s.get(url).json()
+    bday = []
+    if 'BDay' in url:
+        bday = url.pop('BDay').split('-')
+
+    resp_json = s.get(url, params=url).json()
     if resp_json['found'] != 0:
         for j in resp_json['pageData']:
             j['url'] = \
                 f'https://www.reestr-zalogov.ru/search/notification/' \
                 f'{j["guid"]}'
+            if bday == []:
+                resp = requests.get(j['url'])
+                if f"{url['FirstName']} {url['MiddleName']} {url['LastName']}, {bday[0]}.{bday[1]}.{bday[2]}" in resp.text:
+            print(url, data)
             data.append(j)
     return data
 
@@ -20,6 +31,7 @@ async def parse_reesr(url, s):
 async def parse_fin(url, s):
     data = []
     resp_json = s.get(url).json()
+    print(resp_json)
     if resp_json['found'] != 0:
         for j in resp_json['pageData']:
             guid = j["guid"]
@@ -45,7 +57,26 @@ async def parse_fin(url, s):
     return data
 
 
-async def get_info(id):
+def validate(request):
+    params = {}
+    params['id'] = request.rel_url.query['id']
+    params['id'] = parse.quote(params['id'])
+    params['type'] = False
+    try:
+        if request.rel_url.query['type'] == 'true':
+            params['type'] = True
+    except KeyError as e:
+        pass
+    if params['type']:
+        params['b_day'], params['b_month'], params['b_year'] = \
+            request.rel_url.query['bday'].split('-')
+    print(params)
+    return params
+
+
+async def get_info(request):
+    params = validate_reestr(request)
+    
     r = requests.Response()
     with requests.Session() as s:
         s.headers = {
@@ -62,28 +93,16 @@ async def get_info(id):
         }
         r = s.get("https://fedresurs.ru/")
         s.cookies = r.history[0].cookies
-
-        urls = [
-            f"https://fedresurs.ru/backend/fnp-search/vehicle?&Vin="
-            f"{id}&Offset=0&Limit=20",
-            f"https://fedresurs.ru/backend/fnp-search/vehicle?&Pin="
-            f"{id}&Offset=0&Limit=20",
-            f"https://fedresurs.ru/backend/fnp-search/vehicle?&BodyNum="
-            f"{id}&Offset=0&Limit=20",
-            f"https://fedresurs.ru/backend/fnp-search/vehicle?&Chassis="
-            f"{id}&Offset=0&Limit=20",
-            f"https://fedresurs.ru/backend/fnp-search/id?&"
-            f"Id={id}&Offset=0&Limit=20",
-            f"https://fedresurs.ru/backend/encumbrances?startIndex=0&pageSize=15&additionalSearchFnp=true&searchString={id}&group=null&publishDateStart=null&publishDateEnd=null",
-        ]
-        s.headers["referer"] = \
-            f"https://fedresurs.ru/search/encumbrances?searchString" \
-            f"={id}&group=All&additionalSearchFnp=true"
-
+        print('get cookies')
+        urls = validate_reestr(request)
+        # s.headers["referer"] = \
+        #     f"https://fedresurs.ru/search/encumbrances?searchString" \
+        #     f"={params['id']}&group=All&additionalSearchFnp=true"
         coros = []
-        for url in urls[:-1]:
-            coros.append(parse_reesr(url, s))
-        coros.append(parse_fin(urls[-1], s))
+        if not params['type']:
+            for url in urls:
+                coros.append(parse_reestr(url, s))
+        # coros.append(parse_fin(urls[-1], s))
         data = await asyncio.gather(*coros)
         return reduce(iconcat, data, [])
 

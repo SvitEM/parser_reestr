@@ -27,14 +27,14 @@ max_requests = env("GUNICORN_MAX_REQUESTS", 100)
 
 # If a worker does not notify the master process in this number of
 # seconds it is killed and a new worker is spawned to replace it.
-timeout = env("GUNICORN_TIMEOUT", 10)
+timeout = env("GUNICORN_TIMEOUT", 100)
 
 # Timeout for graceful workers restart.
 graceful_timeout = env("GUNICORN_GRACEFUL_TIMEOUT", 5)
 
 # The number of seconds to wait for the next
 # request on a Keep-Alive HTTP connection.
-keepalive = env("GUNICORN_KEEPALIVE", 5)
+keepalive = env("GUNICORN_KEEPALIVE", 100)
 
 # Install a trace function that spews every line of Python
 # that is executed when running the server.
