@@ -8,11 +8,11 @@ import uvloop
 
 async def parse(request):
     data = {'example': 'example1'}
-    try:
-        data = await get_info(request)
-    except Exception as e:
-        print(e)
-        data = {'exception': e}
+    # try:
+    data = await get_info(request)
+    # except Exception as e:
+    #     print(e)
+    #     data = {'exception': e}
     print(data)
     return web.json_response(data=data)
 

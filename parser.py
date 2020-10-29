@@ -8,23 +8,30 @@ from functools import reduce
 from operator import iconcat
 
 
-async def parse_reestr(url: dict, s):
+async def parse_reestr(url: dict, search_type: str, s):
     data = []
     bday = []
     if 'BDay' in url:
         bday = url.pop('BDay').split('-')
-
-    resp_json = s.get(url, params=url).json()
+    rsp = f'https://fedresurs.ru/backend/fnp-search/{search_type}'
+    print(url)
+    resp_= s.get(rsp, params=url).json()
+    resp_json = resp.json()
     if resp_json['found'] != 0:
         for j in resp_json['pageData']:
             j['url'] = \
                 f'https://www.reestr-zalogov.ru/search/notification/' \
                 f'{j["guid"]}'
-            if bday == []:
+            if bday:
                 resp = requests.get(j['url'])
-                if f"{url['FirstName']} {url['MiddleName']} {url['LastName']}, {bday[0]}.{bday[1]}.{bday[2]}" in resp.text:
-            print(url, data)
+                person_data = f"{url['FirstName'].upper()} {url['MiddleName'].upper()} {url['LastName'].upper()}, {bday[0]}.{bday[1]}.{bday[2]}"
+                if person_data in resp.text:
+                    data.append(j)
+                    print(url, data)
+                else:
+                    continue
             data.append(j)
+            print(url, data)
     return data
 
 
@@ -95,13 +102,19 @@ async def get_info(request):
         s.cookies = r.history[0].cookies
         print('get cookies')
         urls = validate_reestr(request)
+        print('validate_reestr')
         # s.headers["referer"] = \
         #     f"https://fedresurs.ru/search/encumbrances?searchString" \
         #     f"={params['id']}&group=All&additionalSearchFnp=true"
         coros = []
-        if not params['type']:
-            for url in urls:
-                coros.append(parse_reestr(url, s))
+        for url in urls:
+            coros.append(
+                parse_reestr(
+                    url=url,
+                    search_type=request.rel_url.query['type'],
+                    s=s
+                )
+            )
         # coros.append(parse_fin(urls[-1], s))
         data = await asyncio.gather(*coros)
         return reduce(iconcat, data, [])

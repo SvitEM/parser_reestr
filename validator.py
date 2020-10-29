@@ -21,7 +21,6 @@ def validate_reestr(request) -> list:
     return urls
 
 
-
 def validate2(request):
     params = {}
     params['id'] = request.rel_url.query['id']
@@ -37,4 +36,3 @@ def validate2(request):
             request.rel_url.query['bday'].split('-')
     print(params)
     return params
-
