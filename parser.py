@@ -1,6 +1,9 @@
 import asyncio
+import html
+import json
+import urllib
 from urllib import parse
-from validator import validate_reestr
+from validator import validate_reestr, reestr_bday_validator
 
 import requests
 import re
@@ -11,23 +14,23 @@ from operator import iconcat
 async def parse_reestr(url: dict, search_type: str, s):
     data = []
     bday = []
-    if 'BDay' in url:
-        bday = url.pop('BDay').split('-')
+    if 'bday' in url:
+        bday = url.pop('bday').split('-')
     rsp = f'https://fedresurs.ru/backend/fnp-search/{search_type}'
     print(url)
-    resp_= s.get(rsp, params=url).json()
+    resp = s.get(rsp, params=url)
     resp_json = resp.json()
+    print(resp_json)
     if resp_json['found'] != 0:
         for j in resp_json['pageData']:
             j['url'] = \
                 f'https://www.reestr-zalogov.ru/search/notification/' \
                 f'{j["guid"]}'
             if bday:
-                resp = requests.get(j['url'])
-                person_data = f"{url['FirstName'].upper()} {url['MiddleName'].upper()} {url['LastName'].upper()}, {bday[0]}.{bday[1]}.{bday[2]}"
-                if person_data in resp.text:
+                if reestr_bday_validator(requests, j, url, bday):
                     data.append(j)
                     print(url, data)
+                    continue
                 else:
                     continue
             data.append(j)
@@ -99,13 +102,14 @@ async def get_info(request):
             "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36",
         }
         r = s.get("https://fedresurs.ru/")
-        s.cookies = r.history[0].cookies
         print('get cookies')
-        urls = validate_reestr(request)
+        s.cookies = r.history[0].cookies
+        print(dict(s.cookies))
         print('validate_reestr')
-        # s.headers["referer"] = \
-        #     f"https://fedresurs.ru/search/encumbrances?searchString" \
-        #     f"={params['id']}&group=All&additionalSearchFnp=true"
+        urls = validate_reestr(request)
+        print(urls)
+        s.headers["referer"] = f"https://fedresurs.ru/search/encumbrances?searchString={urllib.parse.quote(request.rel_url.query['id'])}&group=All&additionalSearchFnp=true"
+        # print(s.headers['referer'])
         coros = []
         for url in urls:
             coros.append(

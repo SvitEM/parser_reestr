@@ -10,7 +10,7 @@ reestr = {
 
 reestr_params = {
     'Offset': 0,
-    'Limits': 20,
+    'Limit': 20,
 }
 
 encumbrances_params = {
