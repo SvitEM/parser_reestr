@@ -55,12 +55,12 @@ def reestr_bday_validator(requests, j, url, bday) -> bool:
     person_birthday = f'{bday[2]}-{bday[1]}-{bday[0]}'
     for pledgors in content['pledgors']:
         if 'privatePerson' in pledgors:
-            if pledgors['privatePerson']['name'] == person_name and \
+            if pledgors['privatePerson']['name'].upper() == person_name and \
                     pledgors['privatePerson']['birthday'] == person_birthday:
                 in_data = True
     for pledgees in content['pledgees']:
         if 'privatePerson' in pledgees:
-            if pledgees['privatePerson']['name'] == person_name and \
+            if pledgees['privatePerson']['name'].upper() == person_name and \
                     pledgees['privatePerson']['birthday'] == person_birthday:
                 in_data = True
     return in_data
