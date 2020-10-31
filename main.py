@@ -1,23 +1,18 @@
+import asyncio
+from aiohttp import web
+import uvloop
 from concurrent.futures.thread import ThreadPoolExecutor
 
-from aiohttp import web
-import asyncio
 from parser import get_info
-import uvloop
 
 
-async def parse(request):
-    data = {'example': 'example1'}
-    # try:
+async def parse(request: web.Request) -> web.Response:
     data = await get_info(request)
-    # except Exception as e:
-    #     print(e)
-    #     data = {'exception': e}
     print(data)
     return web.json_response(data=data)
 
 
-async def hello(request):
+async def hello(request: web.Request) -> web.Response:
     return web.json_response(data={'hello from parser': True})
 
 
@@ -34,9 +29,3 @@ async def main(config=None):
     app.router.add_get('/', hello)
     app.router.add_get('/parse', parse)
     return app
-
-
-# app = main()
-# if __name__ == '__main__':
-#     main()
-
