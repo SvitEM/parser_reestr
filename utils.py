@@ -1,3 +1,4 @@
+import aiofiles as aiofiles
 import aiohttp
 from aiohttp import web
 import html
@@ -34,10 +35,10 @@ def validate_reestr(
     return urls
 
 
-async def reestr_bday_validator(page_data: dict, url: dict, bday: list) -> bool:
+async def reestr_bday_validator(page_data: dict, url: dict, bday: list, proxy=None) -> bool:
     in_data = False
     async with aiohttp.ClientSession() as session:
-        resp = await session.get(page_data['url'])
+        resp = await session.get(page_data['url'], proxy=proxy)
         content = str(await resp.content.read())
         content = re.findall("notification=.*}\"", content)[0][14:-1]
         content = html.unescape(content)
@@ -56,10 +57,26 @@ async def reestr_bday_validator(page_data: dict, url: dict, bday: list) -> bool:
                     if pledgees['privatePerson']['name'].upper() == person_name and \
                             pledgees['privatePerson']['birthday'] == person_birthday:
                         in_data = True
+        if 'id' in content.keys() and in_data:
+            url = 'https://www.reestr-zalogov.ru/api/search/extract/' + content['id']
+            await download_one(url=url, session=session, dest_file=content['id'], proxy=proxy)
     return in_data
 
 
-async def get_session(num='111') -> aiohttp.ClientSession:
+async def download_one(url, session, dest_file, proxy):
+    print(f"Downloading {url}")
+    async with session.get(url, proxy=proxy) as res:
+        content = await res.read()
+
+    if res.status != 200:
+        print(f"Download failed: {res.status}")
+        return
+
+    async with aiofiles.open(config.output_dist+dest_file+'.pdf', "+wb") as f:
+        await f.write(content)
+
+
+async def get_session(proxy: str, num='111') -> aiohttp.ClientSession:
     print('create new client session')
     headers = {
         "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9",
@@ -74,5 +91,5 @@ async def get_session(num='111') -> aiohttp.ClientSession:
         "user-agent": f"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.{num} Safari/537.36",
     }
     session = aiohttp.ClientSession(headers=headers)
-    resp = await session.get("https://fedresurs.ru/")
+    resp = await session.get("https://fedresurs.ru/", proxy=proxy)
     return session

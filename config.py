@@ -26,3 +26,5 @@ encumbrances_params = {
 encumbrances = {
     'searchString': ""
 }
+
+output_dist = 'output/'

@@ -1,10 +1,7 @@
-import random
 import re
 import asyncio
-import time
-
+import pandas as pd
 import aiohttp
-from aiohttp import web
 from urllib import parse
 from functools import reduce
 from operator import iconcat
@@ -16,7 +13,8 @@ from utils import validate_reestr, reestr_bday_validator
 async def parse_reestr(
         url: dict,
         search_type: str,
-        session: aiohttp.ClientSession
+        session: aiohttp.ClientSession,
+        proxy: str
 ) -> list:
     data = []
     bday = []
@@ -25,7 +23,7 @@ async def parse_reestr(
         bday = url.pop('bday').split('-')
     rsp = f'https://fedresurs.ru/backend/fnp-search/{search_type}'
     # print(rsp, url)
-    resp = await session.get(url=rsp, params=url)
+    resp = await session.get(url=rsp, params=url, proxy=proxy)
     resp_json = await resp.json()
     if resp_json['found'] != 0:
         for page_data in resp_json['pageData']:
@@ -73,20 +71,22 @@ async def parse_fin(url, s):
 
 async def get_info(
         params: dict,
-        session: aiohttp.ClientSession
+        session: aiohttp.ClientSession,
+        proxy: str
 ) -> dict:
 
     urls = validate_reestr(params)
     session.headers[
         "referer"] = f"https://fedresurs.ru/search/encumbrances?searchString={parse.quote(params['id'])}&group=All&additionalSearchFnp=true"
     coros = []
-    print(params, session.cookie_jar.filter_cookies('https://fedresurs.ru'))
+    print(proxy[-5:], params, session.cookie_jar.filter_cookies('https://fedresurs.ru'))
     for url in urls:
         coros.append(
             parse_reestr(
                 url=url,
                 search_type=params['search_type'],
-                session=session
+                session=session,
+                proxy=proxy
             )
         )
 
@@ -108,17 +108,23 @@ async def get_info(
     return data
 
 
-async def worker(queue: asyncio.Queue, queue_get: asyncio.Queue):
+async def worker(
+        queue: asyncio.Queue,
+        queue_get: asyncio.Queue,
+        session: aiohttp.ClientSession,
+        proxy: str,
+        ):
+    print(f'start worker with proxy {proxy}')
     while True:
         data = await queue.get()
-        info = await get_info(params=data['params'], session=data['session'])
+        info = await get_info(params=data['params'], session=session, proxy=proxy)
         queue_get.put_nowait(info)
         queue.task_done()
-        time.sleep(6)
+        await asyncio.sleep(6)
         # return info
 
 
-async def get_multy_info(params: dict, ii) -> list:
+async def get_multy_info(params: dict, proxies: list) -> list:
     queue = asyncio.Queue()
     queue_get = asyncio.Queue()
     data = []
@@ -133,15 +139,10 @@ async def get_multy_info(params: dict, ii) -> list:
             'search_type': params['type'],
             'bday': bday,
         }
-        if i % 10 == 0:
-            session = await utils.get_session(ii)
-            sessions.append(session)
-
         queue.put_nowait({
             'params': search_params,
-            'session': session,
         })
-        print(session.cookie_jar.filter_cookies('https://fedresurs.ru/'))
+        # print(session.cookie_jar.filter_cookies('https://fedresurs.ru/'))
         # resp_data = await get_info(params=params, session=session)
         # data.append({
         #     'ids': ids,
@@ -149,13 +150,10 @@ async def get_multy_info(params: dict, ii) -> list:
         # })
 
     tasks = []
-    if len(params['ids']) < 1:
-        tasks_count = len(params['ids'])
-    else:
-        tasks_count = 1
-    tasks_count = 1
-    for i in range(tasks_count):
-        task = asyncio.create_task(worker(queue, queue_get))
+    for proxy in proxies:
+        session = await utils.get_session(proxy)
+        sessions.append(session)
+        task = asyncio.create_task(worker(queue, queue_get, session, proxy))
         tasks.append(task)
 
     await queue.join()
@@ -174,18 +172,19 @@ async def get_multy_info(params: dict, ii) -> list:
         await session.close()
     return resp_data
 
-async def get_paused_info(params: dict)-> list:
+
+async def get_paused_info(params: dict, proxies=None) -> list:
+    if proxies is None:
+        proxies = ['']
     to_send = []
     ret = []
     for i, ids in enumerate(params['ids'], start=1):
         to_send.append(ids)
-        if i % 10 == 0:
-            data = {
-                'ids': to_send,
-                'type': params['type']
-            }
-            # print(data)
-            ret += await get_multy_info(data, i)
-            # time.sleep(60)
-            to_send = []
+    data = {
+        'ids': to_send,
+        'type': params['type']
+    }
+    ret = await get_multy_info(data, proxies)
+    df_resp = pd.DataFrame.from_dict(ret)
+    df_resp.to_csv('output.csv')
     return ret
