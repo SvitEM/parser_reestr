@@ -8,8 +8,8 @@ import parser
 import config
 
 
-def load_data(file_name):
-    df = pd.read_csv('test1000.csv')
+def load_person_data(file_name):
+    df = pd.read_csv(file_name)
     # post_df = pd.DataFrame()
     df['bday'] = pd.to_datetime(df['birthdate']).dt.strftime('%d-%m-%Y')
     df.dropna(axis=0, how='any', inplace=True)
@@ -19,6 +19,15 @@ def load_data(file_name):
     df['id'] = df['last_name'] + ' ' + df['first_name'] + ' ' + df['mid_name']
     # post_df = df.copy()
     post_df = df.drop(['last_name', 'first_name', 'mid_name', 'birthdate'], axis=1)
+    post_df.head()
+    return post_df
+
+
+def load_vehicle_data(file_name):
+    df = pd.read_csv(file_name)
+    df.dropna(axis=0, how='any', inplace=True)
+    df['id'] = df['vin']
+    post_df = df.drop(['vin'], axis=1)
     post_df.head()
     return post_df
 
@@ -38,7 +47,13 @@ proxies: List[str]
 with open(args.proxies) as f:
     proxies = f.read().split('\n')
 
-post_df = load_data(args.data)
+
+if args.type == 'person':
+    post_df = load_person_data(args.data)
+elif args.type == 'vehicle':
+    post_df = load_vehicle_data(args.data)
+else:
+    raise NameError(f'wrong type {args.type}')
 
 data = {
     'ids': post_df.to_dict(orient="records"),
