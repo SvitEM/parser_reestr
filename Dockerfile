@@ -1,5 +1,5 @@
 # set base image (host OS)
-FROM python:3.7-buster
+FROM python:3.9-buster
 
 WORKDIR /usr/src/app
 
